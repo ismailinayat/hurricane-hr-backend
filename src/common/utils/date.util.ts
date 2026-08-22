@@ -31,6 +31,13 @@ export function toDateOnlyString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/** `YYYY-MM-DD` for the calendar day `days` days before today (server-local). */
+export function daysAgoDateOnlyString(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return toDateOnlyString(date);
+}
+
 /** Inclusive count of calendar days between two `YYYY-MM-DD` dates. */
 export function inclusiveDayCount(startDate: string, endDate: string): number {
   const start = new Date(`${startDate}T00:00:00.000Z`);

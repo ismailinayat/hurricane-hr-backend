@@ -7,11 +7,15 @@ import { AttendanceStatus } from '../common/enums/attendance-status.enum';
 import { UserStatus } from '../common/enums/user-status.enum';
 import { PaginatedResult } from '../common/dto/paginated-result.dto';
 import { paginate } from '../common/utils/pagination.util';
-import { inclusiveDayCount, toDateOnlyString } from '../common/utils/date.util';
+import { daysAgoDateOnlyString, inclusiveDayCount, toDateOnlyString } from '../common/utils/date.util';
 import { UsersService } from '../users/users.service';
 import { Attendance } from './entities/attendance.entity';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { AttendanceHistoryQueryDto } from './dto/attendance-history-query.dto';
+import { UpsertManualAttendanceDto } from './dto/upsert-manual-attendance.dto';
+
+/** Admins may only manually record attendance within this many days of today (inclusive). */
+export const MANUAL_ATTENDANCE_EDITABLE_DAYS = 15;
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -140,6 +144,62 @@ export class AttendanceService {
     record.status = AttendanceStatus.PRESENT;
 
     return this.attendanceRepository.save(record);
+  }
+
+  /** Admin-only: creates or overwrites an employee's clock-in/out for a past date. */
+  async upsertManual(dto: UpsertManualAttendanceDto): Promise<Attendance> {
+    const employee = await this.usersService.findById(dto.employeeId);
+    if (!employee) {
+      throw new AppException(
+        'Employee not found',
+        ErrorCode.EMPLOYEE_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    this.assertWithinManualEditWindow(dto.date);
+
+    const clockIn = new Date(dto.clockIn);
+    const clockOut = dto.clockOut ? new Date(dto.clockOut) : null;
+
+    if (clockOut && clockOut.getTime() <= clockIn.getTime()) {
+      throw new AppException(
+        'Clock-out time must be after clock-in time',
+        ErrorCode.ATTENDANCE_INVALID_TIME_RANGE,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const record =
+      (await this.attendanceRepository.findOne({
+        where: { employeeId: dto.employeeId, attendanceDate: dto.date },
+      })) ??
+      this.attendanceRepository.create({
+        employeeId: dto.employeeId,
+        attendanceDate: dto.date,
+      });
+
+    record.clockIn = clockIn;
+    record.clockOut = clockOut;
+    record.totalWorkingSeconds = clockOut
+      ? Math.floor((clockOut.getTime() - clockIn.getTime()) / 1000)
+      : 0;
+    record.status = clockOut ? AttendanceStatus.PRESENT : AttendanceStatus.INCOMPLETE;
+
+    return this.attendanceRepository.save(record);
+  }
+
+  private assertWithinManualEditWindow(date: string): void {
+    const today = toDateOnlyString(new Date());
+    const earliest = daysAgoDateOnlyString(MANUAL_ATTENDANCE_EDITABLE_DAYS - 1);
+
+    if (date < earliest || date > today) {
+      throw new AppException(
+        `Attendance can only be recorded for the last ${MANUAL_ATTENDANCE_EDITABLE_DAYS} days (${earliest} to ${today})`,
+        ErrorCode.ATTENDANCE_DATE_OUT_OF_RANGE,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   async getToday(employeeId: string): Promise<TodayStatusView> {

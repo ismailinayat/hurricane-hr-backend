@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -6,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -17,6 +19,7 @@ import { AttendanceService } from './attendance.service';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { AttendanceHistoryQueryDto } from './dto/attendance-history-query.dto';
 import { SummaryQueryDto } from './dto/summary-query.dto';
+import { UpsertManualAttendanceDto } from './dto/upsert-manual-attendance.dto';
 
 @ApiTags('attendance')
 @ApiBearerAuth()
@@ -91,5 +94,15 @@ export class AttendanceController {
     @Query() query: QueryAttendanceDto,
   ) {
     return this.attendanceService.adminList({ ...query, employeeId });
+  }
+
+  @Roles(Role.ADMIN)
+  @Put('manual')
+  @ApiOperation({
+    summary:
+      "Manually create or overwrite an employee's clock-in/out for a date within the last 15 days (admin only)",
+  })
+  upsertManual(@Body() dto: UpsertManualAttendanceDto) {
+    return this.attendanceService.upsertManual(dto);
   }
 }
