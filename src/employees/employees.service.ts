@@ -155,6 +155,19 @@ export class EmployeesService {
     return { temporaryPassword };
   }
 
+  async delete(id: string): Promise<{ deleted: true }> {
+    const employee = await this.findById(id);
+    if (employee.role !== Role.EMPLOYEE) {
+      throw new AppException(
+        'Admin accounts cannot be deleted from this endpoint',
+        ErrorCode.CANNOT_DELETE_ADMIN,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    await this.usersService.delete(id);
+    return { deleted: true };
+  }
+
   async assertExists(id: string): Promise<void> {
     const employee = await this.usersService.findById(id);
     if (!employee) {

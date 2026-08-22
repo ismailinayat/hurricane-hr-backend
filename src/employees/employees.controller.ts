@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -72,6 +73,13 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Reset an employee password to a new temporary password (admin only)' })
   resetPassword(@Param('id', ParseUUIDPipe) id: string) {
     return this.employeesService.resetPassword(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Permanently delete an employee, including their attendance and leave records (admin only)' })
+  delete(@Param('id', ParseUUIDPipe) id: string) {
+    return this.employeesService.delete(id);
   }
 
   @Get(':employeeId/leaves')

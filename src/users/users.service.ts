@@ -100,4 +100,8 @@ export class UsersService {
       order: { firstName: 'ASC' },
     });
   }
+
+  async delete(id: string): Promise<void> {
+    await this.userRepository.delete(id);
+  }
 }
