@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import configuration, { AppConfig } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { User } from './users/entities/user.entity';
@@ -26,13 +25,6 @@ import { ReportsModule } from './reports/reports.module';
       load: [configuration],
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: false },
-    }),
-    ThrottlerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const throttleConfig = configService.get<AppConfig>('app')!.throttle;
-        return { throttlers: [{ ttl: throttleConfig.ttl * 1000, limit: throttleConfig.limit }] };
-      },
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -64,7 +56,6 @@ import { ReportsModule } from './reports/reports.module';
     ReportsModule,
   ],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

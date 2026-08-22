@@ -18,10 +18,6 @@ export interface AppConfig {
   passwordReset: {
     expiration: string;
   };
-  throttle: {
-    ttl: number;
-    limit: number;
-  };
   seed: {
     adminEmail: string;
     adminPassword: string;
@@ -57,10 +53,6 @@ export default (): { app: AppConfig } => ({
     },
     passwordReset: {
       expiration: process.env.PASSWORD_RESET_EXPIRATION || '15m',
-    },
-    throttle: {
-      ttl: parseInt(process.env.THROTTLE_TTL || '60', 10),
-      limit: parseInt(process.env.THROTTLE_LIMIT || '10', 10),
     },
     seed: {
       adminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@example.com',

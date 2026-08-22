@@ -34,9 +34,6 @@ export const envValidationSchema = Joi.object({
 
   PASSWORD_RESET_EXPIRATION: Joi.string().default('15m'),
 
-  THROTTLE_TTL: Joi.number().default(60),
-  THROTTLE_LIMIT: Joi.number().default(10),
-
   SEED_ADMIN_EMAIL: Joi.string().email().default('admin@example.com'),
   SEED_ADMIN_PASSWORD: Joi.string().default('Admin@123'),
 
