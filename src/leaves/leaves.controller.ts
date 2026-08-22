@@ -45,7 +45,7 @@ export class LeavesController {
 
   @Roles(Role.ADMIN)
   @Patch(':id/reject')
-  @ApiOperation({ summary: 'Reject a pending leave request with a mandatory reason (admin only)' })
+  @ApiOperation({ summary: 'Reject a pending leave request, optionally with a reason (admin only)' })
   reject(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RejectLeaveDto,

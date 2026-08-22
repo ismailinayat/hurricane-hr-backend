@@ -33,7 +33,7 @@ export class LeavesService {
       leaveType: dto.leaveType,
       startDate: dto.startDate,
       endDate: dto.endDate,
-      reason: dto.reason,
+      reason: dto.reason ?? null,
       status: LeaveStatus.PENDING,
     });
     return this.leaveRepository.save(leave);
@@ -115,11 +115,11 @@ export class LeavesService {
     return this.leaveRepository.save(leave);
   }
 
-  async reject(id: string, adminId: string, rejectionReason: string): Promise<Leave> {
+  async reject(id: string, adminId: string, rejectionReason?: string): Promise<Leave> {
     const leave = await this.getPendingOrThrow(id);
 
     leave.status = LeaveStatus.REJECTED;
-    leave.rejectionReason = rejectionReason;
+    leave.rejectionReason = rejectionReason ?? null;
     leave.reviewedBy = adminId;
     leave.reviewedAt = new Date();
     return this.leaveRepository.save(leave);

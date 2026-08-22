@@ -25,8 +25,8 @@ export class Leave extends BaseEntity {
   @Column({ type: 'date' })
   endDate: string;
 
-  @Column({ type: 'text' })
-  reason: string;
+  @Column({ type: 'text', nullable: true })
+  reason: string | null;
 
   @Index()
   @Column({ type: 'enum', enum: LeaveStatus, default: LeaveStatus.PENDING })

@@ -77,7 +77,10 @@ export class EmployeesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Permanently delete an employee, including their attendance and leave records (admin only)' })
+  @ApiOperation({
+    summary:
+      'Permanently delete an employee, including their attendance and leave records (admin only)',
+  })
   delete(@Param('id', ParseUUIDPipe) id: string) {
     return this.employeesService.delete(id);
   }
