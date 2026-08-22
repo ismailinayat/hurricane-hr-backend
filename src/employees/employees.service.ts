@@ -5,6 +5,8 @@ import { ErrorCode } from '../common/enums/error-code.enum';
 import { PaginatedResult } from '../common/dto/paginated-result.dto';
 import { paginate } from '../common/utils/pagination.util';
 import { generateTempPassword } from '../common/utils/password.util';
+import { generateEmployeeCode } from '../common/utils/employee-code.util';
+import { toDateOnlyString } from '../common/utils/date.util';
 import { Role } from '../common/enums/role.enum';
 import { UserStatus } from '../common/enums/user-status.enum';
 import { UsersService } from '../users/users.service';
@@ -42,11 +44,7 @@ export class EmployeesService {
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<{ employee: User; temporaryPassword?: string }> {
-    const [existingEmail, existingCode] = await Promise.all([
-      this.usersService.findByEmail(dto.email),
-      this.usersService.findByEmployeeCode(dto.employeeCode),
-    ]);
-
+    const existingEmail = await this.usersService.findByEmail(dto.email);
     if (existingEmail) {
       throw new AppException(
         'Email is already in use',
@@ -54,13 +52,21 @@ export class EmployeesService {
         HttpStatus.CONFLICT,
       );
     }
-    if (existingCode) {
-      throw new AppException(
-        'Employee code is already in use',
-        ErrorCode.EMPLOYEE_CODE_ALREADY_EXISTS,
-        HttpStatus.CONFLICT,
-      );
+
+    const role = dto.role ?? Role.EMPLOYEE;
+
+    if (dto.employeeCode) {
+      const existingCode = await this.usersService.findByEmployeeCode(dto.employeeCode);
+      if (existingCode) {
+        throw new AppException(
+          'Employee code is already in use',
+          ErrorCode.EMPLOYEE_CODE_ALREADY_EXISTS,
+          HttpStatus.CONFLICT,
+        );
+      }
     }
+
+    const employeeCode = dto.employeeCode ?? (await this.generateUniqueEmployeeCode(role));
 
     const generatedPassword = dto.initialPassword ? undefined : generateTempPassword();
     const passwordHash = await bcrypt.hash(
@@ -69,15 +75,15 @@ export class EmployeesService {
     );
 
     const employee = await this.usersService.create({
-      employeeCode: dto.employeeCode,
+      employeeCode,
       firstName: dto.firstName,
       lastName: dto.lastName,
       email: dto.email,
       phone: dto.phone ?? null,
       passwordHash,
-      role: Role.EMPLOYEE,
+      role,
       status: UserStatus.ACTIVE,
-      joiningDate: dto.joiningDate,
+      joiningDate: dto.joiningDate ?? toDateOnlyString(new Date()),
     });
 
     return { employee, temporaryPassword: generatedPassword };
@@ -174,5 +180,17 @@ export class EmployeesService {
     if (!employee) {
       throw new NotFoundException('Employee not found');
     }
+  }
+
+  private async generateUniqueEmployeeCode(role: Role): Promise<string> {
+    const prefix = role === Role.ADMIN ? 'ADM' : 'EMP';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = generateEmployeeCode(prefix);
+      const existing = await this.usersService.findByEmployeeCode(code);
+      if (!existing) {
+        return code;
+      }
+    }
+    throw new Error('Failed to generate a unique employee code');
   }
 }

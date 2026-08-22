@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsPhoneNumber,
   IsString,
@@ -9,6 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { IsStrongPassword } from '../../common/decorators/is-strong-password.decorator';
+import { Role } from '../../common/enums/role.enum';
 
 export class CreateEmployeeDto {
   @ApiProperty({ example: 'John' })
@@ -32,15 +34,32 @@ export class CreateEmployeeDto {
   @IsPhoneNumber()
   phone?: string;
 
-  @ApiProperty({ example: 'EMP-004' })
+  @ApiPropertyOptional({
+    example: 'EMP-004',
+    description: 'If omitted, a code is generated automatically.',
+  })
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(50)
-  employeeCode: string;
+  employeeCode?: string;
 
-  @ApiProperty({ example: '2026-01-15' })
+  @ApiPropertyOptional({
+    example: '2026-01-15',
+    description: "If omitted, defaults to today's date.",
+  })
+  @IsOptional()
   @IsDateString()
-  joiningDate: string;
+  joiningDate?: string;
+
+  @ApiPropertyOptional({
+    enum: Role,
+    default: Role.EMPLOYEE,
+    description: 'Defaults to EMPLOYEE. Admins may create other ADMIN accounts here too.',
+  })
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
 
   @ApiPropertyOptional({
     description:

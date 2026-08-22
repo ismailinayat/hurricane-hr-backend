@@ -35,7 +35,7 @@ export class EmployeesController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new employee (admin only)' })
+  @ApiOperation({ summary: 'Create a new employee or admin account (admin only)' })
   create(@Body() dto: CreateEmployeeDto) {
     return this.employeesService.create(dto);
   }
