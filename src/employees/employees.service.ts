@@ -91,6 +91,7 @@ export class EmployeesService {
       limit,
       search: query.search,
       status: query.status,
+      role: Role.EMPLOYEE,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });

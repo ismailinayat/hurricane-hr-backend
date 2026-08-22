@@ -22,6 +22,7 @@ export interface ListUsersOptions {
   limit: number;
   search?: string;
   status?: UserStatus;
+  role?: Role;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
 }
@@ -64,12 +65,15 @@ export class UsersService {
   }
 
   async list(options: ListUsersOptions): Promise<{ items: User[]; total: number }> {
-    const { page, limit, search, status, sortBy, sortOrder } = options;
+    const { page, limit, search, status, role, sortBy, sortOrder } = options;
 
     const where: FindOptionsWhere<User>[] | FindOptionsWhere<User> = [];
     const baseWhere: FindOptionsWhere<User> = {};
     if (status) {
       baseWhere.status = status;
+    }
+    if (role) {
+      baseWhere.role = role;
     }
 
     if (search) {
