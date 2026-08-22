@@ -1,38 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { AppConfig } from '../config/configuration';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: nodemailer.Transporter | null;
+  private readonly resend: Resend | null;
   private readonly from: string;
 
   constructor(configService: ConfigService) {
     const { mail } = configService.get<AppConfig>('app')!;
     this.from = mail.from;
-
-    if (!mail.host) {
-      this.transporter = null;
-      return;
-    }
-
-    // Some hosts (e.g. Render) have broken/blocked IPv6 egress, which makes
-    // node silently hang trying an AAAA address instead of failing fast.
-    // `family` isn't in @types/nodemailer's Options type but is supported at
-    // runtime (passed through to net/tls connect), so build this untyped.
-    const transportOptions = {
-      host: mail.host,
-      port: mail.port,
-      secure: mail.secure,
-      auth: mail.user ? { user: mail.user, pass: mail.password } : undefined,
-      family: 4,
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 10_000,
-    };
-    this.transporter = nodemailer.createTransport(transportOptions);
+    // Sends via Resend's HTTPS API rather than raw SMTP: some hosts (e.g.
+    // Render) block or silently drop outbound SMTP ports, but a normal
+    // HTTPS request to api.resend.com always goes through. `mail.password`
+    // holds the Resend API key (same value previously used as the SMTP
+    // password), so no env var changes are needed to switch transports.
+    this.resend = mail.password ? new Resend(mail.password) : null;
   }
 
   async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
@@ -51,13 +36,16 @@ export class MailService {
       <p>If you didn't request this, you can safely ignore this email.</p>
     `;
 
-    if (!this.transporter) {
+    if (!this.resend) {
       this.logger.warn(
-        `SMTP_HOST is not configured — skipping send and logging the reset email instead. To: ${to}, Link: ${resetUrl}`,
+        `Resend API key is not configured — skipping send and logging the reset email instead. To: ${to}, Link: ${resetUrl}`,
       );
       return;
     }
 
-    await this.transporter.sendMail({ from: this.from, to, subject, text, html });
+    const { error } = await this.resend.emails.send({ from: this.from, to, subject, text, html });
+    if (error) {
+      throw new Error(`Resend API error: ${error.name} - ${error.message}`);
+    }
   }
 }
