@@ -13,14 +13,26 @@ export class MailService {
     const { mail } = configService.get<AppConfig>('app')!;
     this.from = mail.from;
 
-    this.transporter = mail.host
-      ? nodemailer.createTransport({
-          host: mail.host,
-          port: mail.port,
-          secure: mail.secure,
-          auth: mail.user ? { user: mail.user, pass: mail.password } : undefined,
-        })
-      : null;
+    if (!mail.host) {
+      this.transporter = null;
+      return;
+    }
+
+    // Some hosts (e.g. Render) have broken/blocked IPv6 egress, which makes
+    // node silently hang trying an AAAA address instead of failing fast.
+    // `family` isn't in @types/nodemailer's Options type but is supported at
+    // runtime (passed through to net/tls connect), so build this untyped.
+    const transportOptions = {
+      host: mail.host,
+      port: mail.port,
+      secure: mail.secure,
+      auth: mail.user ? { user: mail.user, pass: mail.password } : undefined,
+      family: 4,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 10_000,
+    };
+    this.transporter = nodemailer.createTransport(transportOptions);
   }
 
   async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {

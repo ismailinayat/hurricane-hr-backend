@@ -1,5 +1,11 @@
 import { randomBytes, randomUUID, createHash } from 'crypto';
-import { BadRequestException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,6 +32,8 @@ export interface LoginResult {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -118,7 +126,12 @@ export class AuthService {
     );
 
     const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
-    await this.mailService.sendPasswordResetEmail(user.email, resetUrl);
+    // Intentionally not awaited: the response must not reveal whether the
+    // email exists or whether delivery succeeded, and a slow/unreachable
+    // SMTP server should never delay or fail this endpoint.
+    this.mailService.sendPasswordResetEmail(user.email, resetUrl).catch((error) => {
+      this.logger.error(`Failed to send password reset email to ${user.email}`, error);
+    });
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {
