@@ -140,6 +140,18 @@ export class EmployeesService {
       employee.email = dto.email;
     }
 
+    if (dto.employeeCode && dto.employeeCode !== employee.employeeCode) {
+      const existingCode = await this.usersService.findByEmployeeCode(dto.employeeCode);
+      if (existingCode) {
+        throw new AppException(
+          'Employee code is already in use',
+          ErrorCode.EMPLOYEE_CODE_ALREADY_EXISTS,
+          HttpStatus.CONFLICT,
+        );
+      }
+      employee.employeeCode = dto.employeeCode;
+    }
+
     if (dto.firstName !== undefined) employee.firstName = dto.firstName;
     if (dto.lastName !== undefined) employee.lastName = dto.lastName;
     if (dto.phone !== undefined) employee.phone = dto.phone;

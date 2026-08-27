@@ -100,7 +100,7 @@ export class AttendanceController {
   @Put('manual')
   @ApiOperation({
     summary:
-      "Manually create or overwrite an employee's clock-in/out for a date within the last 15 days (admin only)",
+      "Manually create or overwrite an employee's clock-in/out for any past or current date (admin only)",
   })
   upsertManual(@Body() dto: UpsertManualAttendanceDto) {
     return this.attendanceService.upsertManual(dto);

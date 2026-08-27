@@ -7,15 +7,12 @@ import { AttendanceStatus } from '../common/enums/attendance-status.enum';
 import { UserStatus } from '../common/enums/user-status.enum';
 import { PaginatedResult } from '../common/dto/paginated-result.dto';
 import { paginate } from '../common/utils/pagination.util';
-import { daysAgoDateOnlyString, inclusiveDayCount, toDateOnlyString } from '../common/utils/date.util';
+import { inclusiveDayCount, toDateOnlyString } from '../common/utils/date.util';
 import { UsersService } from '../users/users.service';
 import { Attendance } from './entities/attendance.entity';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { AttendanceHistoryQueryDto } from './dto/attendance-history-query.dto';
 import { UpsertManualAttendanceDto } from './dto/upsert-manual-attendance.dto';
-
-/** Admins may only manually record attendance within this many days of today (inclusive). */
-export const MANUAL_ATTENDANCE_EDITABLE_DAYS = 15;
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -191,11 +188,10 @@ export class AttendanceService {
 
   private assertWithinManualEditWindow(date: string): void {
     const today = toDateOnlyString(new Date());
-    const earliest = daysAgoDateOnlyString(MANUAL_ATTENDANCE_EDITABLE_DAYS - 1);
 
-    if (date < earliest || date > today) {
+    if (date > today) {
       throw new AppException(
-        `Attendance can only be recorded for the last ${MANUAL_ATTENDANCE_EDITABLE_DAYS} days (${earliest} to ${today})`,
+        `Attendance cannot be recorded for a future date (today is ${today})`,
         ErrorCode.ATTENDANCE_DATE_OUT_OF_RANGE,
         HttpStatus.BAD_REQUEST,
       );

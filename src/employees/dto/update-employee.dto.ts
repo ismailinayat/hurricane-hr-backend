@@ -38,4 +38,11 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsDateString()
   joiningDate?: string;
+
+  @ApiPropertyOptional({ example: 'EMP-004' })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  employeeCode?: string;
 }
